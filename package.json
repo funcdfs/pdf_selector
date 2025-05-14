@@ -1,7 +1,7 @@
 {
   "name": "pdf_selector",
   "productName": "PDF_selector",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "将剪贴板中的图片保存为PDF文件",
   "main": "main.js",
   "scripts": {
