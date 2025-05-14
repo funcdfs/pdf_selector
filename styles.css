@@ -177,8 +177,9 @@ button svg {
 }
 
 .status.success {
-  background-color: rgba(16, 185, 129, 0.1);
+  background-color: rgba(16, 185, 129, 0.08);
   border-left: 4px solid var(--success);
+  color: #0e9f6e;
 }
 
 .status.error {
@@ -193,6 +194,9 @@ button svg {
   border-radius: var(--radius);
   margin-top: 10px;
   word-break: break-all;
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--secondary);
 }
 
 .history {
@@ -209,61 +213,176 @@ button svg {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
 }
 
+.history-list li:first-child {
+  background-color: rgba(16, 185, 129, 0.05);
+  border-left: 4px solid var(--success);
+}
+
 .history-list li {
-  padding: 12px;
+  padding: 14px 16px;
   border-radius: var(--radius);
-  background-color: white;
-  margin-bottom: 8px;
+  background-color: #f8f9fb;
+  margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+}
+
+.history-list li:nth-child(even) {
+  background-color: #f3f6fa;
 }
 
 .history-info {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  flex: 1;
+  margin-right: 16px;
+  min-width: 0;
 }
 
 .time {
   font-size: 12px;
   color: var(--secondary);
+  font-family: monospace;
 }
 
-.page-count {
-  display: inline-block;
-  background-color: rgba(67, 97, 238, 0.1);
-  color: var(--primary);
-  padding: 2px 6px;
+.file-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.3;
+}
+
+.badge-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.badge {
+  display: inline-flex;
+  padding: 3px 8px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
+  align-items: center;
+  height: 22px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-badge {
+  background-color: rgba(67, 97, 238, 0.15);
+  color: var(--primary);
+  font-weight: 600;
+  padding: 3px 10px;
+}
+
+.page-count {
+  background-color: rgba(67, 97, 238, 0.1);
+  color: var(--primary);
+}
+
+.date-badge {
+  background-color: rgba(100, 116, 139, 0.1);
+  color: var(--secondary);
+  font-family: monospace;
 }
 
 .path {
   word-break: break-all;
-  font-size: 13px;
+  font-size: 12px;
+  color: var(--secondary);
+  width: 100%;
+  font-family: monospace;
+  opacity: 0.8;
+  line-height: 1.5;
 }
 
 .history-actions {
   display: flex;
   gap: 8px;
+  align-items: flex-start;
+  flex-shrink: 0;
 }
 
 .history-actions button {
-  padding: 4px 8px;
+  padding: 6px 12px;
   font-size: 12px;
   background-color: rgba(100, 116, 139, 0.1);
   color: var(--secondary);
+  height: auto;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.history-actions button.open-button {
+  background-color: var(--success);
+  color: white;
+}
+
+.history-list li:first-child .history-actions button {
+  font-weight: 500;
 }
 
 .history-actions button:hover {
   background-color: rgba(100, 116, 139, 0.2);
+  transform: translateY(-1px);
+}
+
+.history-actions button.open-button:hover {
+  background-color: #0ea371;
+}
+
+@media (min-width: 600px) {
+  .history-actions {
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 580px) {
+  .history-actions {
+    flex-direction: column;
+    width: 90px;
+  }
+  
+  .history-actions button {
+    width: 100%;
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  
+  .history-info {
+    max-width: calc(100% - 100px);
+  }
+  
+  .badge {
+    height: 20px;
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+  
+  .file-badge {
+    padding: 2px 8px;
+  }
+  
+  .history-list li {
+    padding: 12px;
+  }
 }
 
 #counter {
@@ -296,26 +415,6 @@ button svg {
 
 #counter.active .counter-number {
   color: white;
-}
-
-#completed-actions {
-  display: none;
-  margin-top: 15px;
-  padding: 15px;
-  border-radius: var(--radius);
-  background-color: rgba(16, 185, 129, 0.1);
-  border-left: 4px solid var(--success);
-}
-
-#completed-actions h3 {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: var(--success);
-}
-
-.actions-row {
-  display: flex;
-  gap: 10px;
 }
 
 #notification {
@@ -432,4 +531,29 @@ button svg {
 .app-footer h1 {
   font-size: 22px;
   margin-bottom: 8px;
+}
+
+.author {
+  color: var(--secondary);
+  font-size: 13px;
+  margin-top: 10px;
+}
+
+.author a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.author a:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+/* Add a prefix to the save path for better clarity */
+.save-path::before {
+  content: "保存位置: ";
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 500;
 } 

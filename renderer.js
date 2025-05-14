@@ -7,9 +7,6 @@ const statusElement = document.getElementById('status');
 const historyList = document.getElementById('history-list');
 const counterElement = document.getElementById('counter');
 const counterNumber = document.querySelector('.counter-number');
-const completedActions = document.getElementById('completed-actions');
-const openPdfButton = document.getElementById('open-pdf-button');
-const newPdfButton = document.getElementById('new-pdf-button');
 const notification = document.getElementById('notification');
 const startMonitorLabel = document.getElementById('start-monitor-label');
 
@@ -33,8 +30,7 @@ const SHORTCUTS = {
    setSavePath: { key: 'o', command: setSavePath, condition: () => !isMonitoring && !setPathButton.disabled },
    startMonitoring: { key: 's', command: startMonitoring, condition: () => !startMonitorButton.disabled },
    stopMonitoring: { key: 'e', command: stopMonitoring, condition: () => !stopMonitorButton.disabled },
-   openPdf: { key: 'p', command: openPdf, condition: () => lastSavedPdf && completedActions.style.display !== 'none' },
-   createNewPdf: { key: 'n', command: createNewPdf, condition: () => completedActions.style.display !== 'none' }
+   openPdf: { key: 'p', command: () => openFileByPath(lastSavedPdf), condition: () => lastSavedPdf }
 };
 
 // 初始化应用
@@ -64,8 +60,6 @@ function setupEventListeners() {
    setPathButton.addEventListener('click', setSavePath);
    startMonitorButton.addEventListener('click', startMonitoring);
    stopMonitorButton.addEventListener('click', stopMonitoring);
-   openPdfButton.addEventListener('click', openPdf);
-   newPdfButton.addEventListener('click', createNewPdf);
 
    // --- Keyboard Shortcuts ---
    document.addEventListener('keydown', handleKeyboardShortcuts);
@@ -233,14 +227,31 @@ async function setSavePath() {
       if (result.success && result.path) {
          currentSavePath = result.path;
 
+         // 处理路径显示
+         let displayPath = currentSavePath;
+         if (isWindows && currentSavePath.length > 50) {
+            const pathParts = currentSavePath.split('\\');
+            if (pathParts.length > 3) {
+               const fileName = pathParts.pop();
+               displayPath = `${pathParts[0]}\\...\\${pathParts[pathParts.length - 1]}\\${fileName}`;
+            }
+         } else if (currentSavePath.length > 50) {
+            const pathParts = currentSavePath.split('/');
+            if (pathParts.length > 3) {
+               const fileName = pathParts.pop();
+               displayPath = `${pathParts[0]}/.../${pathParts[pathParts.length - 1]}/${fileName}`;
+            }
+         }
+
          batchDOMUpdates(() => {
-            savePathDisplay.textContent = `保存位置: ${currentSavePath}`;
+            savePathDisplay.textContent = displayPath;
+            savePathDisplay.title = currentSavePath; // 鼠标悬停时显示完整路径
             startMonitorButton.disabled = false;
-            completedActions.style.display = 'none';
          });
 
-         showStatus('保存路径已设置，可以开始监听剪贴板。', 'info');
+         // 自动重置为新PDF状态
          resetCounter();
+         showStatus('保存路径已设置，可以开始监听剪贴板。', 'info');
       } else if (result.error) {
          showStatus(`设置路径出错: ${result.error}`, false);
       }
@@ -259,7 +270,6 @@ async function startMonitoring() {
    try {
       batchDOMUpdates(() => {
          startMonitorLabel.innerHTML = '<span class="loading-circle"></span>正在监听...';
-         completedActions.style.display = 'none';
       });
 
       resetCounter();
@@ -305,10 +315,10 @@ async function stopMonitoring() {
    }
 }
 
-function openPdf() {
-   if (lastSavedPdf) {
+function openFileByPath(filePath) {
+   if (filePath) {
       try {
-         window.electronAPI.openFile(lastSavedPdf);
+         window.electronAPI.openFile(filePath);
       } catch (error) {
          console.error('打开PDF出错:', error);
          showStatus(`打开PDF出错: ${error.message || '未知错误'}`, false);
@@ -316,14 +326,6 @@ function openPdf() {
    } else {
       showStatus('没有可打开的PDF文件', false);
    }
-}
-
-function createNewPdf() {
-   batchDOMUpdates(() => {
-      completedActions.style.display = 'none';
-   });
-   resetCounter();
-   showStatus('准备创建新PDF。请选择保存位置。', 'info');
 }
 
 // 重置计数器
@@ -378,19 +380,25 @@ function handleMonitorComplete(result) {
       if (isWindows) {
          const pathParts = result.path.split('\\');
          if (pathParts.length > 2) {
-            // 显示前两部分...最后一部分
             displayPath = `${pathParts[0]}\\${pathParts[1]}\\...\\${pathParts[pathParts.length - 1]}`;
          }
       }
 
-      const message = `成功保存 ${result.pageCount} 页PDF到: ${displayPath}`;
+      // 显示成功消息
+      const message = `成功保存 ${result.pageCount} 页PDF`;
       showStatus(message, true);
+
+      // 添加到历史记录
       addToHistory(result.path, result.pageCount);
 
-      // 显示完成操作区
-      batchDOMUpdates(() => {
-         completedActions.style.display = 'block';
-      });
+      // 滚动到历史记录区域
+      setTimeout(() => {
+         const historySection = document.querySelector('.history');
+         if (historySection) {
+            historySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+         }
+      }, 300);
+
    } else {
       lastSavedPdf = null;
       const isError = result.error && result.error.startsWith('保存PDF失败');
@@ -413,15 +421,18 @@ function showStatus(message, type) {
       statusElement.textContent = message;
       if (type === true) {
          statusElement.className = 'status success';
+         // 成功消息3秒后自动消失
+         setTimeout(() => {
+            statusElement.style.display = 'none';
+         }, 3000);
       } else if (type === false) {
          statusElement.className = 'status error';
+         // 只在错误时滚动到状态消息
+         statusElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } else {
          statusElement.className = 'status info';
       }
       statusElement.style.display = 'block';
-
-      // 滚动到状态消息
-      statusElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
    });
 }
 
@@ -437,37 +448,56 @@ function addToHistory(filePath, pageCount) {
    }
 
    const item = document.createElement('li');
-   const date = new Date().toLocaleString();
+
+   // 格式化日期为更优雅的格式
+   const now = new Date();
+   const year = now.getFullYear();
+   const month = (now.getMonth() + 1).toString().padStart(2, '0');
+   const day = now.getDate().toString().padStart(2, '0');
+   const hours = now.getHours().toString().padStart(2, '0');
+   const minutes = now.getMinutes().toString().padStart(2, '0');
+   const dateStr = `${year}-${month}-${day} ${hours}:${minutes}`;
 
    // 创建信息部分
    const info = document.createElement('div');
    info.className = 'history-info';
 
-   const time = document.createElement('span');
-   time.className = 'time';
-   time.textContent = date;
+   // 提取文件名
+   const fileName = filePath.split(/[\/\\]/).pop();
 
-   const pages = document.createElement('span');
-   pages.className = 'page-count';
-   pages.textContent = `${pageCount}页`;
+   // 创建badge容器
+   const badgeContainer = document.createElement('div');
+   badgeContainer.className = 'badge-container';
 
-   // 针对Windows路径做处理
-   let displayPath = filePath;
-   if (isWindows && filePath.length > 40) {
-      const pathParts = filePath.split('\\');
-      if (pathParts.length > 2) {
-         displayPath = `${pathParts[0]}\\${pathParts[1]}\\...\\${pathParts[pathParts.length - 1]}`;
-         info.title = filePath; // 鼠标悬停时显示完整路径
-      }
-   }
+   // 文件名作为第一个badge
+   const fileNameBadge = document.createElement('span');
+   fileNameBadge.className = 'badge file-badge';
+   fileNameBadge.textContent = fileName;
+   fileNameBadge.title = fileName;
 
+   // 页数作为badge样式
+   const pagesSpan = document.createElement('span');
+   pagesSpan.className = 'badge page-count';
+   pagesSpan.textContent = `${pageCount}页`;
+
+   // 日期作为badge样式
+   const dateSpan = document.createElement('span');
+   dateSpan.className = 'badge date-badge';
+   dateSpan.textContent = dateStr;
+
+   // 添加所有badge
+   badgeContainer.appendChild(fileNameBadge);
+   badgeContainer.appendChild(pagesSpan);
+   badgeContainer.appendChild(dateSpan);
+
+   // 创建路径元素 (显示完整路径)
    const pathElement = document.createElement('div');
    pathElement.className = 'path';
-   pathElement.textContent = displayPath;
+   pathElement.textContent = filePath;
    pathElement.title = filePath; // 鼠标悬停时显示完整路径
 
-   info.appendChild(time);
-   info.appendChild(pages);
+   // 添加所有信息元素
+   info.appendChild(badgeContainer);
    info.appendChild(pathElement);
 
    // 创建操作部分
@@ -475,7 +505,8 @@ function addToHistory(filePath, pageCount) {
    actions.className = 'history-actions';
 
    const openButton = document.createElement('button');
-   openButton.textContent = '打开';
+   openButton.className = 'open-button';
+   openButton.textContent = '打开PDF';
    openButton.onclick = () => {
       try {
          window.electronAPI.openFile(filePath);
@@ -517,13 +548,6 @@ function addToHistory(filePath, pageCount) {
       item.style.opacity = '1';
       item.style.transform = 'translateY(0)';
    });
-
-   // 保存历史记录到localStorage或其他存储
-   try {
-      // 这里可以添加持久化存储历史记录的代码
-   } catch (error) {
-      console.error('保存历史记录出错:', error);
-   }
 }
 
 // 初始化按钮状态
