@@ -1,0 +1,311 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' # Trigger on version tags like v1.0.0, v1.2.3-beta
+
+jobs:
+  # Common setup for getting version info, to be reused by all jobs
+  get-version-info:
+    name: Get Version Info
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.get_release_tag.outputs.TAG_NAME }}
+      version_number: ${{ steps.get_version.outputs.VERSION_NUMBER }}
+    steps:
+      - name: Get Release Tag
+        id: get_release_tag
+        shell: bash
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Get Clean Version Number
+        id: get_version
+        shell: bash
+        run: |
+          raw_tag_val="${{ steps.get_release_tag.outputs.TAG_NAME }}"
+          echo "VERSION_NUMBER=${raw_tag_val#v}" >> $GITHUB_OUTPUT
+
+  # Create a draft release to be populated by the platform-specific builds
+  create-draft-release:
+    name: Create Draft Release
+    runs-on: ubuntu-latest
+    needs: get-version-info
+    outputs:
+      release_id: ${{ steps.create_release.outputs.id }}
+    permissions:
+      contents: write
+    steps:
+      - name: Create Draft Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version-info.outputs.tag_name }}
+          name: Release ${{ needs.get-version-info.outputs.tag_name }}
+          body: "Automated release for version ${{ needs.get-version-info.outputs.tag_name }}."
+          draft: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build for macOS
+  build-macos:
+    name: Build for macOS
+    runs-on: macOS-latest
+    needs: [get-version-info, create-draft-release]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package Electron app
+        shell: bash
+        run: npx electron-builder --mac --publish onTagOrDraft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug List dist directory
+        shell: bash
+        run: |
+          echo "Listing contents of ./dist directory:"
+          ls -la ./dist/
+          echo "Showing exact DMG filenames:"
+          find ./dist -name "*.dmg" -type f
+
+      - name: Find DMG file path
+        id: find_dmg
+        shell: bash
+        run: |
+          DMG_FILE=$(find ./dist -name "*.dmg" -type f | head -n 1)
+          if [ -n "$DMG_FILE" ]; then
+            echo "dmg_file_path=$DMG_FILE" >> $GITHUB_OUTPUT
+            echo "Found DMG file at: $DMG_FILE"
+            DMG_FILENAME=$(basename "$DMG_FILE")
+            echo "dmg_filename=$DMG_FILENAME" >> $GITHUB_OUTPUT
+            echo "Filename is: $DMG_FILENAME"
+          else
+            echo "::error::No DMG file found in dist directory"
+            exit 1
+          fi
+
+      - name: Upload macOS Artifact
+        uses: softprops/action-gh-release@v2
+        if: steps.find_dmg.outputs.dmg_file_path
+        with:
+          tag_name: ${{ needs.get-version-info.outputs.tag_name }}
+          files: ${{ steps.find_dmg.outputs.dmg_file_path }}
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build for Windows
+  build-windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    needs: [get-version-info, create-draft-release]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Package Electron app
+        shell: bash
+        run: npx electron-builder --win --publish onTagOrDraft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List dist directory (Detailed)
+        shell: bash
+        run: |
+          echo "Listing contents of ./dist directory to debug artifact paths:"
+          ls -la ./dist/
+          echo "Listing contents of all subdirectories in ./dist:"
+          find ./dist -type d -exec ls -la {} \;
+          echo "Searching for all .exe files recursively:"
+          find ./dist -name "*.exe" -type f
+
+      - name: Find Windows executable file 
+        id: find_exe
+        shell: powershell
+        run: |
+          # First try to find Setup .exe in dist
+          $setupFile = Get-ChildItem -Path ".\dist" -Recurse -Filter "*.exe" | Where-Object { $_.Name -match 'Setup' } | Select-Object -First 1
+          
+          # If not found, try any .exe file
+          if (-not $setupFile) {
+            $setupFile = Get-ChildItem -Path ".\dist" -Recurse -Filter "*.exe" | Select-Object -First 1
+          }
+          
+          if ($setupFile) {
+            $relativePath = $setupFile.FullName.Replace("$pwd\", "").Replace("\", "/")
+            echo "setup_file_path=$relativePath" >> $env:GITHUB_OUTPUT
+            echo "setup_filename=$($setupFile.Name)" >> $env:GITHUB_OUTPUT
+            echo "Found executable file at: $relativePath"
+            echo "Filename is: $($setupFile.Name)"
+          } else {
+            echo "::warning::No .exe file found in dist directory"
+            # Don't fail the build, just skip the upload
+            echo "setup_file_found=false" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+      - name: Upload Windows Artifact
+        if: steps.find_exe.outputs.setup_file_found != 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version-info.outputs.tag_name }}
+          files: ${{ steps.find_exe.outputs.setup_file_path }}
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build for Linux
+  build-linux:
+    name: Build for Linux
+    runs-on: ubuntu-latest
+    needs: [get-version-info, create-draft-release]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Cache electron-builder directories
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron-builder
+          key: ${{ runner.os }}-electron-builder-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-builder-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libtool \
+            libudev-dev \
+            libicns-dev \
+            libopenjp2-7 \
+            libopenjp2-tools \
+            libarchive-tools \
+            fakeroot \
+            dpkg \
+            jq
+          sudo snap install snapcraft --classic
+
+      - name: Package Electron app
+        shell: bash
+        # 恢复 deb 包构建，并设置 maintainer 信息
+        run: |
+          npx electron-builder --linux AppImage deb --publish onTagOrDraft \
+          --config.linux.maintainer="funcdfs <funcdfs@gmail.com>"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug List dist directory (Linux)
+        shell: bash
+        run: |
+          echo "Listing contents of ./dist directory:"
+          ls -la ./dist/
+          echo "Showing exact AppImage filenames:"
+          find ./dist -name "*.AppImage" -type f
+          echo "Showing exact DEB filenames:"
+          find ./dist -name "*.deb" -type f
+
+      - name: Find Linux files
+        id: find_linux_files
+        shell: bash
+        run: |
+          APPIMAGE_FILE=$(find ./dist -name "*.AppImage" -type f | head -n 1)
+          DEB_FILE=$(find ./dist -name "*.deb" -type f | head -n 1)
+          
+          FILES=""
+          
+          if [ -n "$APPIMAGE_FILE" ]; then
+            echo "appimage_file_path=$APPIMAGE_FILE" >> $GITHUB_OUTPUT
+            echo "Found AppImage file at: $APPIMAGE_FILE"
+            FILES="$APPIMAGE_FILE"
+          fi
+          
+          if [ -n "$DEB_FILE" ]; then
+            echo "deb_file_path=$DEB_FILE" >> $GITHUB_OUTPUT
+            echo "Found DEB file at: $DEB_FILE"
+            if [ -z "$FILES" ]; then
+              FILES="$DEB_FILE"
+            else
+              FILES=$(echo -e "$FILES\n$DEB_FILE")
+            fi
+          fi
+          
+          if [ -z "$FILES" ]; then
+            echo "::error::No Linux packages found in dist directory"
+            exit 1
+          else
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            echo "$FILES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Linux Artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version-info.outputs.tag_name }}
+          files: ${{ steps.find_linux_files.outputs.files }}
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish the release if at least one platform build succeeded
+  publish-release:
+    name: Publish GitHub Release
+    # This job will run if at least one of the platform builds completed successfully
+    needs: [get-version-info, build-macos, build-windows, build-linux]
+    if: always() && (needs.build-macos.result == 'success' || needs.build-windows.result == 'success' || needs.build-linux.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.get-version-info.outputs.tag_name }}
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

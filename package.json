@@ -1,0 +1,77 @@
+{
+  "name": "pdf_selector",
+  "productName": "PDF_selector",
+  "version": "1.0.0",
+  "description": "将剪贴板中的图片保存为PDF文件",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "prestart": "node scripts/setup.js",
+    "test": "node scripts/verify.js",
+    "dev": "nodemon --exec electron . --watch main.js --watch renderer.js --watch styles.css --watch preload.js",
+    "icons": "node assets/generate-icons.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "release": "./release.sh",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "pdf",
+    "clipboard",
+    "image",
+    "screenshot",
+    "electron"
+  ],
+  "author": "funcdfs",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/funcdfs/pdf_selector.git"
+  },
+  "bugs": {
+    "url": "https://github.com/funcdfs/pdf_selector/issues"
+  },
+  "homepage": "https://github.com/funcdfs/pdf_selector#readme",
+  "files": [
+    "assets/icon.*",
+    "*.js",
+    "*.html",
+    "*.css",
+    "scripts/*.js"
+  ],
+  "dependencies": {
+    "pdf-lib": "1.17.1"
+  },
+  "devDependencies": {
+    "electron": "36.2.0",
+    "electron-builder": "26.0.12",
+    "nodemon": "3.1.10",
+    "png-to-ico": "2.1.8",
+    "rimraf": "6.0.1",
+    "semver": "7.7.2",
+    "sharp": "0.33.2",
+    "svg2png": "4.1.1"
+  },
+  "build": {
+    "appId": "com.pdf_selector.app",
+    "productName": "PDF_selector",
+    "artifactName": "PDF_selector-${version}-${arch}.${ext}",
+    "mac": {
+      "category": "public.app-category.utilities",
+      "icon": "assets/icon.icns"
+    },
+    "win": {
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "icon": "assets/icon.png",
+      "category": "Utility"
+    }
+  }
+}

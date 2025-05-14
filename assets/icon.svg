@@ -1,0 +1,42 @@
+
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .paper { fill: #f9f9f9; stroke: #333; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+    .sheet { fill: #fff; stroke: #444; stroke-width: 4; stroke-dasharray: 4 6; }
+    .clip { fill: #4361ee; stroke: #2c3e50; stroke-width: 6; }
+    .lines { stroke: #78909c; stroke-width: 3; stroke-linecap: round; }
+    .text { font-family: 'Arial', sans-serif; font-size: 24px; fill: #2c3e50; font-weight: bold; }
+    .hand-drawn { filter: url(#hand-drawn); }
+  </style>
+  
+  <defs>
+    <filter id="hand-drawn" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G" result="displacement" />
+    </filter>
+  </defs>
+  
+  <!-- 背景纸张 -->
+  <g class="hand-drawn">
+    <rect class="paper" x="96" y="56" width="320" height="400" rx="8" ry="8" transform="rotate(2, 256, 256)" />
+    
+    <!-- 纸张上的线条 -->
+    <line class="lines" x1="120" y1="140" x2="380" y2="140" />
+    <line class="lines" x1="120" y1="180" x2="380" y2="180" />
+    <line class="lines" x1="120" y1="220" x2="380" y2="220" />
+    <line class="lines" x1="120" y1="260" x2="380" y2="260" />
+    <line class="lines" x1="120" y1="300" x2="380" y2="300" />
+    <line class="lines" x1="120" y1="340" x2="380" y2="340" />
+    <line class="lines" x1="120" y1="380" x2="380" y2="380" />
+    
+    <!-- 剪贴板图片 -->
+    <rect class="sheet" x="160" y="120" width="200" height="120" transform="rotate(-5, 260, 180)" />
+    <rect class="sheet" x="180" y="260" width="160" height="100" transform="rotate(3, 260, 310)" />
+    
+    <!-- 回形针 -->
+    <path class="clip" d="M140,90 C130,85 135,65 145,60 C155,55 170,60 170,70 C170,95 170,110 170,130 C170,140 155,145 145,140 C135,135 130,115 140,110" />
+    
+    <!-- PDF文本 -->
+    <text class="text" x="188" y="420">PDF Selector</text>
+  </g>
+</svg>
