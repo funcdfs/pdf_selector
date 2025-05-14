@@ -11,7 +11,6 @@ const completedActions = document.getElementById('completed-actions');
 const openPdfButton = document.getElementById('open-pdf-button');
 const newPdfButton = document.getElementById('new-pdf-button');
 const notification = document.getElementById('notification');
-const shortcutHint = document.getElementById('shortcut-hint');
 const startMonitorLabel = document.getElementById('start-monitor-label');
 
 // Application State
@@ -57,16 +56,6 @@ function initializeApp() {
 
    // 初始化历史记录
    initializeHistory();
-
-   // 首次启动显示全局快捷键提示
-   setTimeout(() => {
-      if (isWindows || isLinux) {
-         shortcutHint.textContent = "全局快捷键: Ctrl+Alt+S 开始监听, Ctrl+Alt+E 停止";
-      } else if (isMac) {
-         shortcutHint.textContent = "全局快捷键: ⌥⌘+S 开始监听, ⌥⌘+E 停止";
-      }
-      showNotification('shortcut');
-   }, 1500);
 }
 
 // 设置所有事件监听器
@@ -91,14 +80,12 @@ function setupEventListeners() {
    window.electronAPI.onTriggerStartMonitor(() => {
       if (!startMonitorButton.disabled) {
          startMonitoring();
-         showNotification('global', '开始监听剪贴板');
       }
    });
 
    window.electronAPI.onTriggerStopMonitor(() => {
       if (!stopMonitorButton.disabled) {
          stopMonitoring();
-         showNotification('global', '停止并保存PDF');
       }
    });
 }
@@ -111,7 +98,6 @@ function handleKeyboardShortcuts(e) {
       if (e.key === config.key && config.condition()) {
          e.preventDefault();
          config.command();
-         showNotification('shortcut');
       }
    });
 }
@@ -159,7 +145,6 @@ function batchDOMUpdates(updates) {
 function updatePlatformSpecificUI() {
    // 根据平台更新快捷键显示
    const shortcutPrefix = isWindows || isLinux ? 'Ctrl' : '⌘';
-   const globalShortcutPrefix = isWindows || isLinux ? 'Ctrl+Alt' : '⌥⌘';
 
    batchDOMUpdates(() => {
       document.querySelectorAll('.shortcut').forEach(el => {
@@ -167,11 +152,6 @@ function updatePlatformSpecificUI() {
             el.textContent = el.textContent.replace('⌘+', `${shortcutPrefix}+`);
          }
       });
-
-      // 更新全局快捷键提示
-      if (shortcutHint) {
-         shortcutHint.textContent = `全局快捷键: ${globalShortcutPrefix}+S/E`;
-      }
 
       // 为Windows添加更多可见的说明
       if (isWindows) {
@@ -208,47 +188,36 @@ function updateButtonStates() {
    });
 }
 
-// 统一通知显示函数
+// 修改显示通知函数，不再显示快捷键提示
 function showNotification(type, message) {
-   switch (type) {
-      case 'shortcut':
-         batchDOMUpdates(() => {
-            shortcutHint.classList.add('show');
-         });
-         setTimeout(() => {
-            batchDOMUpdates(() => shortcutHint.classList.remove('show'))
-         }, 1500);
-         break;
-
-      case 'global':
-         const globalNotification = document.createElement('div');
-         globalNotification.className = 'notification';
-         globalNotification.style.backgroundColor = 'rgba(67, 97, 238, 0.95)';
-         globalNotification.innerHTML = `<span>全局快捷键: ${message}</span>`;
-
-         batchDOMUpdates(() => {
-            document.body.appendChild(globalNotification);
-            // 强制回流
-            void globalNotification.offsetWidth;
-            // 应用动画
-            globalNotification.classList.add('show');
-         });
-
-         setTimeout(() => {
-            batchDOMUpdates(() => globalNotification.classList.remove('show'));
-            setTimeout(() => {
-               batchDOMUpdates(() => document.body.removeChild(globalNotification));
-            }, 400);
-         }, 2000);
-         break;
-
-      case 'clipboard':
-         batchDOMUpdates(() => notification.classList.add('show'));
-         setTimeout(() => {
-            batchDOMUpdates(() => notification.classList.remove('show'));
-         }, 2000);
-         break;
+   if (type === 'shortcut') {
+      // 不再显示快捷键提示
+      return;
    }
+
+   if (type === 'global') {
+      notification.querySelector('span').textContent = message;
+      notification.classList.add('show');
+      setTimeout(() => {
+         notification.classList.remove('show');
+      }, 2000);
+      return;
+   }
+
+   if (notification.classList.contains('show')) {
+      notification.classList.remove('show');
+      setTimeout(() => {
+         notification.querySelector('span').textContent = message || '已添加截图';
+         notification.classList.add('show');
+      }, 300);
+   } else {
+      notification.querySelector('span').textContent = message || '已添加截图';
+      notification.classList.add('show');
+   }
+
+   setTimeout(() => {
+      notification.classList.remove('show');
+   }, 2000);
 }
 
 // --- Core Functions ---

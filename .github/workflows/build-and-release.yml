@@ -42,7 +42,21 @@ jobs:
         with:
           tag_name: ${{ needs.get-version-info.outputs.tag_name }}
           name: Release ${{ needs.get-version-info.outputs.tag_name }}
-          body: "Automated release for version ${{ needs.get-version-info.outputs.tag_name }}."
+          body: |
+            # PDF Selector ${{ needs.get-version-info.outputs.tag_name }}
+            
+            ## Installation Instructions
+            
+            ### macOS
+            - For Apple Silicon (M1/M2/M3): Use the *-arm64.dmg file
+            - For Intel Macs: Use the *-x64.dmg file
+            
+            ### Windows
+            - Install using the .exe setup file
+            
+            ### Linux
+            - Debian/Ubuntu: Use the .deb package
+            - Other distributions: Use the .AppImage file
           draft: true
           prerelease: false
         env:
@@ -72,7 +86,7 @@ jobs:
 
       - name: Package Electron app
         shell: bash
-        run: npx electron-builder --mac --publish onTagOrDraft
+        run: npx electron-builder --mac --x64 --arm64 --publish onTagOrDraft
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -9,20 +9,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>PDF_selector</h1>
-        <p class="subtitle">快速将剪贴板中的图片保存为PDF文件</p>
-        
-        <div class="card">
+        <div class="card feature-card">
             <h2>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                 </svg>
                 设置保存路径
-                <span class="tooltip" data-tooltip="选择PDF文件的保存位置，可以是已有文件夹或新建文件夹。您可以使用快捷键Cmd+O (Mac) 或 Ctrl+O (Windows) 设置路径。"></span>
             </h2>
+            <p class="feature-description">选择保存PDF文件的位置，确保有足够的存储空间。</p>
             <div class="form-group">
-                <button id="set-path-button">
+                <button id="set-path-button" class="primary-button">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                     </svg>
@@ -32,7 +29,7 @@
             <div id="save-path-display" class="save-path">未设置保存路径</div>
         </div>
         
-        <div class="card">
+        <div class="card feature-card">
             <h2>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clipboard">
                     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
@@ -40,15 +37,15 @@
                 </svg>
                 监听剪贴板
             </h2>
-            <p>开始监听后，每当您复制截图，系统会自动将截图添加到PDF中。完成后点击停止按钮保存。</p>
+            <p class="feature-description">开始监听后，每当您复制截图，系统会自动将截图添加到PDF中。完成后点击停止按钮保存。</p>
             <div class="action-row">
-                <button id="start-monitor-button" disabled>
+                <button id="start-monitor-button" class="primary-button" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="5 3 19 12 5 21 5 3"></polygon>
                     </svg>
                     <span id="start-monitor-label">开始监听剪贴板</span><span class="shortcut">⌘+S</span>
                 </button>
-                <button id="stop-monitor-button" disabled>
+                <button id="stop-monitor-button" class="secondary-button" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="6" y="4" width="4" height="16"></rect>
                         <rect x="14" y="4" width="4" height="16"></rect>
@@ -68,7 +65,7 @@
                         </svg>
                         打开PDF<span class="shortcut">⌘+P</span>
                     </button>
-                    <button id="new-pdf-button">
+                    <button id="new-pdf-button" class="primary-button">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                             <polyline points="14 2 14 8 20 8"></polyline>
@@ -81,7 +78,7 @@
             </div>
         </div>
         
-        <div class="card">
+        <div class="card feature-card">
             <h2>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-clock">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -89,8 +86,8 @@
                 </svg>
                 历史记录
             </h2>
+            <p class="feature-description">查看最近创建的PDF文件，点击可以快速打开。</p>
             <div class="history">
-                <h3>最近创建的PDF</h3>
                 <ul id="history-list" class="history-list"></ul>
             </div>
         </div>
@@ -108,7 +105,12 @@
         <span>已添加截图</span>
     </div>
     
-    <div id="shortcut-hint">快捷键提示</div>
+    <footer class="app-footer">
+        <div class="footer-content">
+            <h1>PDF_selector</h1>
+            <p class="subtitle">快速将剪贴板中的图片保存为PDF文件</p>
+        </div>
+    </footer>
     
     <script src="./renderer.js"></script>
 </body>
