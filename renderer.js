@@ -251,7 +251,7 @@ async function setSavePath() {
 
          // 自动重置为新PDF状态
          resetCounter();
-         showStatus('保存路径已设置，可以开始监听剪贴板。', 'info');
+         showStatus('保存路径已设置，可以开始监听剪贴板。每次创建新PDF都需要重新选择保存位置。', 'info');
       } else if (result.error) {
          showStatus(`设置路径出错: ${result.error}`, false);
       }
@@ -372,6 +372,13 @@ function handleClipboardImageAdded(result) {
 }
 
 function handleMonitorComplete(result) {
+   // 无论成功与否，都重置保存路径，强制用户重新选择保存位置
+   currentSavePath = null;
+   batchDOMUpdates(() => {
+      savePathDisplay.textContent = "";
+      startMonitorButton.disabled = true;
+   });
+
    if (result.success) {
       lastSavedPdf = result.path;
 
@@ -391,6 +398,11 @@ function handleMonitorComplete(result) {
       // 添加到历史记录
       addToHistory(result.path, result.pageCount);
 
+      // 提示用户选择新的保存位置
+      setTimeout(() => {
+         showStatus('PDF已保存，请为新PDF选择保存位置', 'info');
+      }, 3500);
+
       // 滚动到历史记录区域
       setTimeout(() => {
          const historySection = document.querySelector('.history');
@@ -406,7 +418,7 @@ function handleMonitorComplete(result) {
       if (isError) {
          showStatus(`错误: ${result.error || '保存PDF时出现未知错误'}`, false);
       } else {
-         showStatus(`监听已停止。${result.error || '未保存任何内容'}`, 'info');
+         showStatus(`监听已停止。${result.error || '未保存任何内容，请重新选择保存位置'}`, 'info');
       }
    }
 }
