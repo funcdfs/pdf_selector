@@ -10,15 +10,44 @@ from reportlab.lib.units import mm
 from io import BytesIO
 import argparse
 
-# 注册 STSong-Light 字体以支持中文字符
+# 注册字体
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.pdfbase.ttfonts import TTFont # 用于加载 TTF 字体
+
+# 定义自定义字体路径和名称
+FONT_NAME = "LXGWWenKaiMono"
+FONT_PATH = "Font/LXGWWenKaiMono-Regular.ttf" # 相对于脚本的路径
 
 try:
-    pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
+    if os.path.exists(FONT_PATH):
+        pdfmetrics.registerFont(TTFont(FONT_NAME, FONT_PATH))
+    else:
+        print(f"[警告] 字体文件未找到: {os.path.abspath(FONT_PATH)}")
+        print("[信息] 将尝试回退到 STSong-Light (如果可用)。中文字符可能无法按预期显示。")
+        # 尝试回退到 STSong-Light (如果之前注册代码还在，或者 ReportLab 默认包含)
+        from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+        try:
+            pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
+            FONT_NAME = 'STSong-Light' # 更新 FONT_NAME 以便后续使用
+            print("[信息] 已回退到 STSong-Light 字体。")
+        except Exception as e_stsong:
+            print(f"[警告] 未能注册 STSong-Light 作为回退字体: {e_stsong}")
+            print("[信息] 页码中文字符可能无法正确显示。")
+            FONT_NAME = 'Helvetica' # 最终回退到 Helvetica
+            print("[信息] 已最终回退到 Helvetica 字体。")
+
 except Exception as e:
-    print(f"[警告] 未能注册 STSong-Light 字体: {e}")
-    print("[信息] 中文字符可能无法正确显示。请确保您的 ReportLab 安装包含亚洲字体包，或者系统安装了 STSong-Light 字体。")
+    print(f"[警告] 注册字体 {FONT_NAME} 时发生错误: {e}")
+    print("[信息] 将尝试回退到 STSong-Light 或 Helvetica。中文字符可能无法按预期显示。")
+    try:
+        from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+        pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
+        FONT_NAME = 'STSong-Light'
+        print("[信息] 已回退到 STSong-Light 字体。")
+    except:
+        FONT_NAME = 'Helvetica' # 最终回退
+        print("[信息] 已最终回退到 Helvetica 字体。")
+
 
 TOP_MARGIN_RATIO = 0.10 # 页面顶部内容预留的边距比例
 
@@ -117,9 +146,9 @@ def add_page_numbers(writer, total_global_pages, input_files_metadata=None, sing
         packet = BytesIO()
         c = canvas.Canvas(packet, pagesize=A4)
         
-        base_font_name = "STSong-Light" # 基础字体名称
-        base_font_size = 8             # 基础字体大小
-        min_font_size_part1 = 5        # 左侧部分页码的最小字体大小
+        base_font_name = FONT_NAME # 使用注册的字体名称
+        base_font_size = 10            # 基础字体大小 (原为 8)
+        min_font_size_part1 = 7        # 左侧部分页码的最小字体大小 (原为 5)
         
         y_position = 7 * mm 
         left_margin_part1 = 10 * mm # 左侧部分页码的左边距 (从 5mm 增加)
